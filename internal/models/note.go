@@ -9,7 +9,12 @@ type Note struct {
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
 }
 
-type UpdateNoteInput struct {
+type CreateNoteRequest struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+type UpdateNoteRequest struct {
 	Title   *string `json:"title"`
 	Content *string `json:"content"`
 }

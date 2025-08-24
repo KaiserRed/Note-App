@@ -19,35 +19,57 @@ func NewNoteHandler(db *gorm.DB) *NoteHandler {
 	}
 }
 
+// CreateNote
+// @Summary      Create a note
+// @Description  creating a note
+// @Tags         notes
+// @Accept       json
+// @Produce      json
+// @Param   note body models.CreateNoteRequest true "Данные заметки"
+// @Success 201 {object} map[string]interface{} "Заметка создана"
+// @Failure 400 {object} map[string]interface{} "Неверные данные"
+// @Failure 500 {object} map[string]interface{} "Ошибка сервера"
+// @Router /notes [post]
 func (h *NoteHandler) CreateNote(c *gin.Context) {
-	var note models.Note
-	if err := c.ShouldBindJSON(&note); err != nil {
+	var noteRequest models.CreateNoteRequest
+	if err := c.ShouldBindJSON(&noteRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if len(note.Title) == 0 {
+	if len(noteRequest.Title) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Title cannot be empty"})
 		return
 	}
 
-	if len(note.Content) == 0 {
+	if len(noteRequest.Content) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Content cannot be empty"})
 		return
 	}
-
+	note := models.Note{
+		Title:   noteRequest.Title,
+		Content: noteRequest.Content,
+	}
 	result := h.DB.Create(&note)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create note: " + result.Error.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"id":      note.ID,
-		"message": "Note created successfully",
-	})
+	c.JSON(http.StatusCreated, note)
 }
 
+// GetNote
+// @Summary Show note
+// @Description get note by ID
+// @Tags notes
+// @Accept  json
+// @Produce  json
+// @Param   id path int true "ID заметки"
+// @Success 200 {object} models.Note "Заметка найдена"
+// @Failure 400 {object} map[string]interface{} "Неверный ID"
+// @Failure 404 {object} map[string]interface{} "Заметка не найдена"
+// @Router /notes/{id} [get]
 func (h *NoteHandler) GetNote(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -65,6 +87,15 @@ func (h *NoteHandler) GetNote(c *gin.Context) {
 	c.JSON(http.StatusOK, note)
 }
 
+// GetAllNotes
+// @Summary List notes
+// @Description get notes
+// @Tags notes
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} map[string]interface{} "Список заметок"
+// @Failure 500 {object} map[string]interface{} "Ошибка сервера"
+// @Router /notes [get]
 func (h *NoteHandler) GetAllNotes(c *gin.Context) {
 	var notes []models.Note
 	result := h.DB.Find(&notes)
@@ -88,6 +119,18 @@ func (h *NoteHandler) GetAllNotes(c *gin.Context) {
 	})
 }
 
+// UpdateNote
+// @Summary Update note
+// @Description update note by ID
+// @Tags notes
+// @Accept  json
+// @Produce  json
+// @Param   id path int true "ID заметки"
+// @Param   updateData body models.UpdateNoteRequest true "Данные для обновления"
+// @Success 200 {object} map[string]interface{} "Заметка обновлена"
+// @Failure 400 {object} map[string]interface{} "Неверные данные"
+// @Failure 404 {object} map[string]interface{} "Заметка не найдена"
+// @Router /notes/{id} [put]
 func (h *NoteHandler) UpdateNote(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -101,7 +144,7 @@ func (h *NoteHandler) UpdateNote(c *gin.Context) {
 		return
 	}
 
-	var updateData models.UpdateNoteInput
+	var updateData models.UpdateNoteRequest
 	if err := c.ShouldBindJSON(&updateData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
 		return
@@ -128,6 +171,17 @@ func (h *NoteHandler) UpdateNote(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Note updated successfully"})
 }
 
+// DeleteNote
+// @Summary Delete note
+// @Description delete note by ID
+// @Tags notes
+// @Accept  json
+// @Produce  json
+// @Param   id path int true "ID заметки"
+// @Success 200 {object} map[string]interface{} "Заметка удалена"
+// @Failure 400 {object} map[string]interface{} "Неверный ID"
+// @Failure 404 {object} map[string]interface{} "Заметка не найдена"
+// @Router /notes/{id} [delete]
 func (h *NoteHandler) DeleteNote(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
